@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # Encrypted Tar (EncrypTar)
 # Author: Tom Conroy
-# Description:
-#   This script implements
 
 # imports
 import hashlib
@@ -24,7 +22,7 @@ def CreateTar(files, recursive):
         directory, filename = os.path.split(files)
         if directory != '':
             os.chdir(directory) # make all file backups relative to the source directory
-        tar_file = tar.open(mode='w:xz', fileobj=tar_buffer) # write a gzip-compressed tarfile to the buffer
+        tar_file = tar.open(mode='w:xz', fileobj=tar_buffer) # write an lmza-compressed tarfile to the buffer
         tar_file.add(filename, recursive=recursive)
     else:
         os.chdir(files)
