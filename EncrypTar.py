@@ -36,7 +36,7 @@ def CreateTar(files, recursive):
     return tar_data
 
 def DeriveKey(passphrase, salt):
-    return hashlib.pbkdf2_hmac('sha256', bytearray(passphrase, 'utf-8'), salt, 100000, 32)
+    return hashlib.pbkdf2_hmac('sha256', bytearray(passphrase, 'utf-8'), salt, 100000)
 
 def Encrypt(archive, key, nonce):
     aesObj = AES.new(key, AES.MODE_GCM, nonce)
