@@ -9,12 +9,18 @@ import tarfile as tar
 import argparse
 import getpass
 import os, io, os.path
+from enum import Enum
 
 SALT_LEN = 16
 NONCE_LEN = 16
 TAG_LEN = 16
 
 MAGIC_NUMBER = b'\x25\x24'
+
+class EncrypTarMode(Enum):
+    ARCHIVE = 0
+    EXTRACT = 1
+    LIST = 2
 
 def CreateTar(files, recursive, current_directory):
     tar_buffer = io.BytesIO()
@@ -52,8 +58,21 @@ def Decrypt(archive, key, nonce, tag):
     try:
         plaintext = aesObj.decrypt_and_verify(archive, tag)
     except ValueError:
-        raise ValueError("Either the passphrase was incorrect or the archive has been corrupted!")
+        raise ValueError("""Decryption failed.
+Either the passphrase was incorrect or the archive has been corrupted.""")
     return plaintext
+
+def DecryptEncrypTarFile(archive_filename, passphrase):
+    with open(archive_filename, 'rb') as archive_file:
+        if archive_file.read(2) != MAGIC_NUMBER:
+            raise ValueError(archive_filename + " is not an EncrypTar file.")
+        salt = archive_file.read(SALT_LEN)
+        key = DeriveKey(passphrase, salt)
+        nonce = archive_file.read(NONCE_LEN)
+        tag = archive_file.read(TAG_LEN)
+        enc_archive = archive_file.read()
+    archive = Decrypt(enc_archive, key, nonce, tag)
+    return archive
 
 def WriteArchive(archive_filename, salt, nonce, enc_archive, tag):
     with open(archive_filename, 'wb') as archive_file:
@@ -63,7 +82,13 @@ def WriteArchive(archive_filename, salt, nonce, enc_archive, tag):
         archive_file.write(tag)
         archive_file.write(enc_archive)
 
+def ListTar(archive):
+    tar_buffer = io.BytesIO(archive)
+    tar_file = tar.open(mode='r:xz', fileobj=tar_buffer)
+    tar_file.list()
+
 def RunEncrypTar():
+
     # setup commandline argument parsing using argparse module
     parser = argparse.ArgumentParser(description='Python script that does encrypted archives of both files and directories.')
     parser.add_argument("ARCHIVE", help='Name of archive file to create/restore.')
@@ -72,16 +97,21 @@ def RunEncrypTar():
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-a', '--archive', action='store_true', help='Run in archive mode, default mode.')
     group.add_argument('-e', '--extract', action='store_true', help='Run in extract mode.')
+    group.add_argument('-l', '--list', action='store_true', help='Lists the contents of an archive')
     parser.add_argument('-r', '--recursive', action='store_true', help='Encrypt directories recursively.')
     args = parser.parse_args()
-    
+
     current_directory = os.getcwd()
 
-    archive = True
+
     if args.extract:
-        archive = False
+        mode = EncrypTarMode.EXTRACT
         if len(args.FILES) > 1:
             raise ValueError("Please specify only one extract directory.")
+    elif args.list:
+        mode = EncrypTarMode.LIST
+    else:
+        mode = EncrypTarMode.ARCHIVE
 
     if args.passphrase:
         with open(args.passphrase, 'r') as passphrase_file:
@@ -93,7 +123,7 @@ def RunEncrypTar():
     if args.recursive:
         recursive = True
 
-    if archive:
+    if mode == EncrypTarMode.ARCHIVE:
         for file in args.FILES:
             if not os.path.isfile(file) and not os.path.isdir(file):
                 raise ValueError("The file/directory " + file + " must exist for it to be archived!")
@@ -106,20 +136,15 @@ def RunEncrypTar():
         os.chdir(current_directory)
         WriteArchive(args.ARCHIVE, salt, nonce, enc_archive, tag)
 
-    else: # extract
+    elif mode == EncrypTarMode.EXTRACT:
         if not os.path.isdir(args.FILES[0]):
             raise ValueError("The extraction location must be a directory")
-        archive_file = open(args.ARCHIVE, 'rb')
-        if archive_file.read(2) != MAGIC_NUMBER:
-            raise ValueError(args.ARCHIVE + " is not an EncrypTar file")
-        salt = archive_file.read(SALT_LEN)
-        key = DeriveKey(passphrase, salt)
-        nonce = archive_file.read(NONCE_LEN)
-        tag = archive_file.read(TAG_LEN)
-        enc_archive = archive_file.read()
-        archive = Decrypt(enc_archive, key, nonce, tag)
+        archive = DecryptEncrypTarFile(args.ARCHIVE, passphrase)
         RestoreTar(archive, args.FILES[0])
-        archive_file.close()
+
+    else: # mode == EncrypTarMode.LIST
+        archive = DecryptEncrypTarFile(args.ARCHIVE, passphrase)
+        ListTar(archive)
 
 if __name__ == "__main__":
     try:
