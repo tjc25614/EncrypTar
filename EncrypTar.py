@@ -115,7 +115,7 @@ def RunEncrypTar():
 
     if args.passphrase:
         with open(args.passphrase, 'r') as passphrase_file:
-            passphrase = passphrase_file.read()
+            passphrase = passphrase_file.read().strip()
     else:
         passphrase = getpass.getpass('Encryption Passphrase: ')
 
