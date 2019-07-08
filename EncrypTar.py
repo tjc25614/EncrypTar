@@ -95,9 +95,9 @@ def RunEncrypTar():
 
     # setup commandline argument parsing using argparse module
     parser = argparse.ArgumentParser(description='Python script that does encrypted archives of both files and directories.')
-    parser.add_argument("ARCHIVE", help='Name of archive file to create/restore.')
+    parser.add_argument("ARCHIVE", help='Name of archive file to create/list/extract.')
     parser.add_argument("FILES", nargs='*', default=['.'], help='The file/directory to archive/(extract to). Not recursive by default. Defaults to current working directory.')
-    parser.add_argument('-p', '--passphrase', help='Optional file containing passphrase to use for encryption.')
+    parser.add_argument('-p', '--passphrase-file', help='Optional file containing passphrase to use for encryption.')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-a', '--archive', action='store_true', help='Run in archive mode, default mode.')
     group.add_argument('-x', '--extract', action='store_true', help='Run in extract mode.')
@@ -117,8 +117,8 @@ def RunEncrypTar():
     else:
         mode = EncrypTarMode.ARCHIVE
 
-    if args.passphrase:
-        with open(args.passphrase, 'r') as passphrase_file:
+    if args.passphrase_file:
+        with open(args.passphrase_file, 'r') as passphrase_file:
             passphrase = passphrase_file.read().strip()
     else:
         passphrase = getpass.getpass('Encryption Passphrase: ')
