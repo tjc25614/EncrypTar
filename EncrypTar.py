@@ -15,16 +15,20 @@ SALT_LEN = 16
 NONCE_LEN = 16
 TAG_LEN = 16
 
-MAGIC_NUMBER = b'\x25\x24'
+MAGIC_BYTES = b'\x25\x24'
 
 class EncrypTarMode(Enum):
     ARCHIVE = 0
     EXTRACT = 1
     LIST = 2
 
-def CreateTar(files, recursive, current_directory):
+def CreateTar(files, recursive, current_directory, no_compression):
     tar_buffer = io.BytesIO()
-    tar_file = tar.open(mode='w:xz', fileobj=tar_buffer) # write an lmza-compressed tarfile to the buffer
+    if no_compression:
+        compression_mode = 'w:'
+    else:
+        compression_mode = 'w:xz' # use lzma compression
+    tar_file = tar.open(mode=compression_mode, fileobj=tar_buffer) # write a tarfile to the buffer
     for file in files:
         os.chdir(current_directory)
         if os.path.isfile(file):
@@ -50,7 +54,7 @@ def Encrypt(archive, key, nonce):
 
 def RestoreTar(archive, directory):
     tar_buffer = io.BytesIO(archive)
-    tar_file = tar.open(mode='r:xz', fileobj=tar_buffer)
+    tar_file = tar.open(mode='r:*', fileobj=tar_buffer)
     tar_file.extractall(path=directory)
 
 def Decrypt(archive, key, nonce, tag):
@@ -64,7 +68,7 @@ Either the passphrase was incorrect or the archive has been corrupted.""")
 
 def DecryptEncrypTarFile(archive_filename, passphrase):
     with open(archive_filename, 'rb') as archive_file:
-        if archive_file.read(2) != MAGIC_NUMBER:
+        if archive_file.read(2) != MAGIC_BYTES:
             raise ValueError(archive_filename + " is not an EncrypTar file.")
         salt = archive_file.read(SALT_LEN)
         key = DeriveKey(passphrase, salt)
@@ -76,7 +80,7 @@ def DecryptEncrypTarFile(archive_filename, passphrase):
 
 def WriteArchive(archive_filename, salt, nonce, enc_archive, tag):
     with open(archive_filename, 'wb') as archive_file:
-        archive_file.write(MAGIC_NUMBER)
+        archive_file.write(MAGIC_BYTES)
         archive_file.write(salt)
         archive_file.write(nonce)
         archive_file.write(tag)
@@ -84,7 +88,7 @@ def WriteArchive(archive_filename, salt, nonce, enc_archive, tag):
 
 def ListTar(archive):
     tar_buffer = io.BytesIO(archive)
-    tar_file = tar.open(mode='r:xz', fileobj=tar_buffer)
+    tar_file = tar.open(mode='r:*', fileobj=tar_buffer)
     tar_file.list()
 
 def RunEncrypTar():
@@ -97,12 +101,12 @@ def RunEncrypTar():
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-a', '--archive', action='store_true', help='Run in archive mode, default mode.')
     group.add_argument('-x', '--extract', action='store_true', help='Run in extract mode.')
-    group.add_argument('-l', '--list', action='store_true', help='Lists the contents of an archive')
+    group.add_argument('-l', '--list', action='store_true', help='Lists the contents of an archive.')
     parser.add_argument('-r', '--recursive', action='store_true', help='Encrypt directories recursively.')
+    parser.add_argument('-n', '--no-compression', action='store_true', help='Do not use compression (lzma is default) when creating the archive.')
     args = parser.parse_args()
 
     current_directory = os.getcwd()
-
 
     if args.extract:
         mode = EncrypTarMode.EXTRACT
@@ -130,7 +134,7 @@ def RunEncrypTar():
 
         salt = os.urandom(SALT_LEN) # get a salt for key derivation
         key = DeriveKey(passphrase, salt)
-        archive = CreateTar(args.FILES, recursive, current_directory)
+        archive = CreateTar(args.FILES, recursive, current_directory, args.no_compression)
         nonce = os.urandom(NONCE_LEN) # create a nonce for AES encryption
         enc_archive, tag = Encrypt(archive, key, nonce)
         os.chdir(current_directory)
