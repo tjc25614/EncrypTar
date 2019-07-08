@@ -96,7 +96,7 @@ def RunEncrypTar():
     parser.add_argument('-p', '--passphrase', help='Optional file containing passphrase to use for encryption.')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-a', '--archive', action='store_true', help='Run in archive mode, default mode.')
-    group.add_argument('-e', '--extract', action='store_true', help='Run in extract mode.')
+    group.add_argument('-x', '--extract', action='store_true', help='Run in extract mode.')
     group.add_argument('-l', '--list', action='store_true', help='Lists the contents of an archive')
     parser.add_argument('-r', '--recursive', action='store_true', help='Encrypt directories recursively.')
     args = parser.parse_args()
