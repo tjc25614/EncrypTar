@@ -3,7 +3,7 @@ A Python script for password-protected tarballs
 
 ## Usage
 ```
-usage: EncrypTar.py [-h] [-p PASSPHRASE] [-a | -x | -l] [-r] [-n]
+usage: EncrypTar.py [-h] [-p PASSPHRASE_FILE] [-a | -x | -l] [-r] [-n]
                     ARCHIVE [FILES [FILES ...]]
 
 Python script that does encrypted archives of both files and directories.
@@ -16,7 +16,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -p PASSPHRASE, --passphrase PASSPHRASE
+  -p PASSPHRASE_FILE, --passphrase-file PASSPHRASE_FILE
                         Optional file containing passphrase to use for
                         encryption.
   -a, --archive         Run in archive mode, default mode.
