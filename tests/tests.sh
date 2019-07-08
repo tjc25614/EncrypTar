@@ -79,6 +79,33 @@ fi
 # clean up
 rm file.txt passphrase.txt file.tar.enc 2>/dev/null
 ################################################################################
+# TEST 2 - INCORRECT PASSPHRASE
+NUM_TESTS=$(($NUM_TESTS+1))
+echo -n "TEST 3 - "
+
+# setup
+S1="Hello, world!"
+echo "$S1" > file.txt
+echo "test2" > passphrase.txt
+
+# test
+expect user_passphrase.exp > /dev/null
+if [ -e file.tar.enc ]; then
+    rm file.txt
+    ../EncrypTar.py -x -p passphrase.txt file.tar.enc ./ > /dev/null
+    if [ $? -eq 1 ]; then
+        echo "PASSED"
+        PASSED_TESTS=$(($PASSED_TESTS+1))
+    else
+        echo "password check failed"
+    fi
+else
+    echo "encrypted archive does not exist"
+fi
+
+# clean up
+rm file.txt passphrase.txt file.tar.enc 2>/dev/null
+################################################################################
 
 ################################################################################
 echo "TESTS PASSED: $PASSED_TESTS/$NUM_TESTS"
