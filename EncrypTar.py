@@ -155,3 +155,4 @@ if __name__ == "__main__":
         RunEncrypTar()
     except ValueError as e:
         print(e)
+        exit(1)

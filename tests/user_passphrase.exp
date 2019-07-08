@@ -1,0 +1,5 @@
+#!/usr/bin/env expect
+spawn ../EncrypTar.py file.tar.enc file.txt
+expect "Encryption Passphrase: "
+send "test\n"
+expect eof
